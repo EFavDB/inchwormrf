@@ -25,7 +25,8 @@ involving the integration of differential equations.
     curved functions.
 
 
-[0] J. Landy and Y. Jho. Root finding via local measurement (2023).
+[0] J. Landy and Y. Jho. Root finding via local measurement (2023)
+[<a href="https://arxiv.org/abs/2302.13211">link</a>].
 
 ## Package information
 ### Example calls

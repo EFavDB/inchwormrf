@@ -1,4 +1,4 @@
-# hard coded first 7 inverse coefficients
+# hard coded first 8 inverse coefficients
 A1 = lambda a: 1/a[0]
 A2 = lambda a: -(a[1] / a[0] ** 3)
 A3 = lambda a: (2 * a[1] ** 2 - a[0] * a[2]) / a[0] ** 5

@@ -56,11 +56,27 @@ def inchworm1newton(x0, y0, N, derivative1):
 
     delta_y = y0 / float(N)
 
+    y_prime_vals = np.zeros(N + 1) 
     for index in range(N):
-        x_val -= delta_y / derivative1(x_val)
+        a0 = derivative1(x_val)
+
+        x_val -= delta_y / a0 
         x_vals[index + 1] = x_val
 
+        # tracking derivatives for newton hop
+        if index == 0:
+            left_derivative_vals = [a0]
+        y_prime_vals[index] = a0
+
+    # final derivative vals we need to track
+    y_prime_vals[-1] = derivative1(x_val)
+    right_derivative_vals = [derivative1(x_val)]
+
     # farm out to general newton hop method
-    x_val = _final_newton_hop(x_vals, y0, [derivative1])
+    x_val = _final_newton_hop(
+        x_vals=x_vals, y0=y0, y_prime_vals=y_prime_vals,
+        left_derivative_vals=left_derivative_vals,
+        right_derivative_vals=right_derivative_vals,
+    )
 
     return x_val

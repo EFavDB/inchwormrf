@@ -53,14 +53,20 @@ class TestMethods():
         x_vals = np.linspace(2.0, 1.0 + 0.0001, 20)
         y0 = y_function(x_vals[0])
 
+        y_prime_vals = derivatives[0](x_vals)
+
         true_y_final = y_function(x_vals[-1])
 
         y_final_estimates = []
         for i in np.arange(1, 11, 2):
             local_derivatives = derivatives[:i]
+            left_derivative_vals = [d(x_vals[0]) for d in local_derivatives]
+            right_derivative_vals = [d(x_vals[-1]) for d in local_derivatives]
             y_final_estimates.append(
                 inchwormrf._final_newton_hop(
-                    x_vals, y0, local_derivatives, return_y=True
+                    x_vals=x_vals, y0=y0, y_prime_vals=y_prime_vals,
+                    left_derivative_vals=left_derivative_vals,
+                    right_derivative_vals=right_derivative_vals, return_y=True,
                 )
             )
 

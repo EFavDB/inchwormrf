@@ -59,6 +59,7 @@ def inchworm(x0, y0, N, derivatives, newton_pass=False, farm_out=True):
     x_val = x0 * 1.0
 
     y_prime_coefs = np.zeros(d_count)
+    y_prime_vals = np.zeros(N + 1)
     for index in range(N):
         # STEP 1: get dy expansion in dx coefficients
         for idx in range(d_count):
@@ -73,8 +74,20 @@ def inchworm(x0, y0, N, derivatives, newton_pass=False, farm_out=True):
         x_val += np.dot(delta_y_value_powers, inverse_coefs)
         x_vals[index + 1] = x_val
 
+        # STEP 4: tracking derivatives for newton hop
+        if index == 0:
+            left_derivative_vals = y_prime_coefs / factorial_factors
+        y_prime_vals[index] = y_prime_coefs[0]
+
+    y_prime_vals[-1] = derivatives[0](x_val)
+    right_derivative_vals = [d(x_val) for d in derivatives]
+
     if newton_pass:
-        x_val =  _final_newton_hop(x_vals, y0, derivatives)
+	x_val =  _final_newton_hop(
+            x_vals=x_vals, y0=y0, y_prime_vals=y_prime_vals,
+            left_derivative_vals=left_derivative_vals,
+            right_derivative_vals=right_derivative_vals
+        )
 
     return x_val
 

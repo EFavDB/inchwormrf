@@ -119,7 +119,10 @@ def _higher_derivative_chain_rule(f_list, g_list):
     return res
 
 
-def _final_newton_hop(x_vals, y0, derivatives, return_y=False):
+def _final_newton_hop(
+        x_vals, y0, y_prime_vals, left_derivative_vals, right_derivative_vals,
+        return_y=False
+    ):
     """
     Take a final Newton, first order hop to further reduce error after the
     inchworm process is complete.  We assume that we can't evaluate the y
@@ -144,9 +147,12 @@ def _final_newton_hop(x_vals, y0, derivatives, return_y=False):
     a way to estimate the final y.  After we have this result, we Newon hop and
     return the updated x position.
 
-    NOTE:  In principle, we could pass in those derivatives we need here that
-    have already been evaluated, but for large step sizes N, the extra overhead
-    here is not very expensive.  For code simplicity's sake, we re-evaluate.
+    NOTE: We require the derivative values used here to be pre-computed.  This
+    does not speed up the runtime very much for quick-to-evaluate functions.
+    However, it could be useful for applications where the derivatives are also
+    expensive to calculate.  In the simple alternative to this method just
+    below, we assume the derivatives are easy to evaluate, and so just resample
+    at even spacing -- much more convenient.
 
     [0] https://en.wikipedia.org/wiki/Euler%E2%80%93Maclaurin_formula
 
@@ -158,8 +164,14 @@ def _final_newton_hop(x_vals, y0, derivatives, return_y=False):
     y0 : float
         The initial value of y
 
-    derivatives : list
-        list holding derivative functions of y.
+    y_prime_vals : list
+        The first derivative values, evaluated at each of the x_vals.
+
+    left_derivative_vals : list
+        The first m derivatives of y, evaluated at x_vals[0]
+
+    right_derivative_vals : list
+        The first m derivatives of y, evaluated at x_vals[-1]
 
     return_y : bool
         If True, we return the final y estimate instead of the final x value.
@@ -175,13 +187,12 @@ def _final_newton_hop(x_vals, y0, derivatives, return_y=False):
     x_vals = np.array(x_vals)
     x_tilde = np.arange(0, len(x_vals))
 
-    derivative_count = min(len(derivatives), len(x_vals) - 2)
+    derivative_count = min(len(left_derivative_vals), len(x_vals) - 2)
     spline_kind = max(2 * (derivative_count // 2) + 1, 3)
 
     spline = interp1d(x_tilde, x_vals, kind=spline_kind)
 
     # first term in Euler-Maclaurin (special case using all sample points)
-    y_prime_vals = derivatives[0](x_vals)
     spline_derivatives = spline._spline.derivative(nu=1)(x_tilde).ravel()
 
     y_final = y0 * 1.0
@@ -192,27 +203,24 @@ def _final_newton_hop(x_vals, y0, derivatives, return_y=False):
 
     # higher order EM terms
     for k in np.arange(1, derivative_count // 2 + 1):
-        print(k)
         prefactor = bernoulli(2 * k)[-1] / np.math.factorial(2 * k)
 
         # left side -- get first 2k derivatives of our function and the spline
-        y_derivatives = [derivatives[i](x_vals[0]) for i in range(2 * k)]
         spline_derivatives = [
             spline._spline.derivative(nu=i + 1)(x_tilde[0])[0]
                 for i in range(2 * k)
         ]
         d_factor = _higher_derivative_chain_rule(
-            y_derivatives, spline_derivatives
+            left_derivative_vals[:2 * k], spline_derivatives
         )
 
         # right side -- get first 2k derivatives of our function and the spline
-        y_derivatives = [derivatives[i](x_vals[-1]) for i in range(2 * k)]
         spline_derivatives = [
             spline._spline.derivative(nu=i + 1)(x_tilde[-1])[0]
                 for i in range(2 * k)
         ]
         d_factor -= _higher_derivative_chain_rule(
-            y_derivatives, spline_derivatives
+            right_derivative_vals[:2 * k], spline_derivatives
         )
 
         # add this term to the EM estimate
